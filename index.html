@@ -166,7 +166,8 @@
                 <div class="flex-1 flex justify-center order-3 md:order-2 w-full md:w-auto min-w-[180px]">
                     <div class="flex items-center bg-[var(--control-bg-color)] rounded-lg p-1 text-sm font-medium">
                         <button id="view-editor" title="Editor Only" class="px-3 py-1.5 rounded-md">Editor</button>
-                        <button id="view-split" title="Split View" class="px-3 py-1.5 rounded-md">Split</button>
+                        <!-- MODIFIED: Added responsive classes to hide on mobile -->
+                        <button id="view-split" title="Split View" class="px-3 py-1.5 rounded-md hidden md:block">Split</button>
                         <button id="view-preview" title="Preview Only" class="px-3 py-1.5 rounded-md">Preview</button>
                     </div>
                 </div>
@@ -316,6 +317,12 @@
                 saveSettings();
             };
             const applyView = (view) => {
+                // MODIFIED: Check for mobile and override split view
+                const isMobile = window.innerWidth < 768; // Tailwind's `md` breakpoint
+                if (view === 'split' && isMobile) {
+                    view = 'editor';
+                }
+
                 settings.view = view;
                 const contentArea = document.getElementById('content-area');
                 const editorPanel = document.getElementById('editor-panel');
@@ -545,8 +552,8 @@ Use the icons in the top-right to customize your experience:
                 });
 
                 window.addEventListener('resize', () => applyView(settings.view));
-                editor.addEventListener('scroll', () => syncScroll(editor, preview));
-                preview.addEventListener('scroll', () => syncScroll(preview, editor));
+                editor.addEventListener('scroll', () => syncScroll(editor, document.getElementById('preview-panel')));
+                document.getElementById('preview-panel').addEventListener('scroll', () => syncScroll(document.getElementById('preview-panel'), editor));
             };
             init();
         });
