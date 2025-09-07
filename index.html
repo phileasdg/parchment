@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parchment</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown to HTML conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- highlight.js for syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/solarized-light.min.css" id="hljs-theme">
+    
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400..700;1,400..700&family=Roboto+Mono:wght@400;500&family=Merriweather:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+
+    <style id="print-style-sheet"></style>
+    <style>
+        :root {
+            --base-text-size: 16px;
+            --header-scale: 1.25;
+        }
+
+        /* --- THEME DEFINITIONS --- */
+        [data-theme="warm"] {
+            --bg-color: #fbf9f3; --text-color: #6d6a61; --heading-color: #4a4843; --muted-text-color: #9d9a91;
+            --panel-bg-color: #fbf9f3; --panel-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --header-bg-color: #f5f2e9; --header-border-color: #e9e5d9; --control-bg-color: #e9e5d9;
+            --control-hover-bg-color: #d9d5c9; --active-color: #8c7341; --active-text-color: #ffffff;
+            --scrollbar-track-color: #f5f2e9; --scrollbar-thumb-color: #d9d5c9; --scrollbar-thumb-hover-color: #bcae92;
+            --code-bg-color: #f5f2e9; --inline-code-bg-color: #e9e5d9;
+        }
+        [data-theme="light"] {
+            --bg-color: #f8fafc; --text-color: #334155; --heading-color: #020617; --muted-text-color: #64748b;
+            --panel-bg-color: #ffffff; --panel-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --header-bg-color: #ffffff; --header-border-color: #e5e7eb; --control-bg-color: #f1f5f9;
+            --control-hover-bg-color: #e2e8f0; --active-color: #2563eb; --active-text-color: #ffffff;
+            --scrollbar-track-color: #f1f5f9; --scrollbar-thumb-color: #d1d5db; --scrollbar-thumb-hover-color: #9ca3af;
+            --code-bg-color: #f1f5f9; --inline-code-bg-color: #e2e8f0;
+        }
+        [data-theme="dark"] {
+            --bg-color: #0f172a; --text-color: #94a3b8; --heading-color: #f1f5f9; --muted-text-color: #64748b;
+            --panel-bg-color: #1e293b; --panel-shadow: 0 0 #0000; --header-bg-color: #1e293b;
+            --header-border-color: #334155; --control-bg-color: #334155; --control-hover-bg-color: #475569;
+            --active-color: #38bdf8; --active-text-color: #0f172a; --scrollbar-track-color: #1e293b;
+            --scrollbar-thumb-color: #475569; --scrollbar-thumb-hover-color: #64748b;
+            --code-bg-color: #0f172a; --inline-code-bg-color: #334155;
+        }
+        
+        /* --- GENERAL & UI STYLES --- */
+        body {
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dropdown-menu { transition: opacity 0.2s, transform 0.2s; }
+        .dropdown-menu.hidden { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; width: 100%; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: var(--active-color); border-radius: 50%; margin-top: -5px; }
+        input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: var(--active-color); border-radius: 50%; border: none; }
+        input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--scrollbar-thumb-color); border-radius: 3px; }
+        input[type="range"]::-moz-range-track { height: 6px; background: var(--scrollbar-thumb-color); border-radius: 3px; }
+
+        /* --- MARKDOWN PREVIEW STYLES --- */
+        .markdown-preview { 
+            color: var(--text-color); 
+            --font-body: 'Inter', sans-serif;
+            --font-heading: 'Inter', sans-serif;
+            font-family: var(--font-body);
+            font-size: var(--base-text-size);
+            line-height: 1.7;
+        }
+        .markdown-preview-content { transition: max-width 0.3s, column-count 0.3s; }
+        .markdown-preview-content.width-standard { max-width: 80ch; margin-inline: auto; }
+        .markdown-preview-content.width-full { max-width: 100%; }
+        .markdown-preview-content.columns-1 { column-count: 1; }
+        .markdown-preview-content.columns-2 { column-count: 2; column-gap: 2.5rem; }
+        
+        .markdown-preview-content > :first-child {
+            margin-top: 0;
+        }
+
+        .markdown-preview ul, .markdown-preview ol {
+            list-style-position: outside;
+            padding-left: 1.75em;
+            margin-block: 1em;
+        }
+        .markdown-preview ul { list-style-type: disc; }
+        .markdown-preview ol { list-style-type: decimal; }
+        .markdown-preview ul ul, .markdown-preview ol ol, .markdown-preview ul ol, .markdown-preview ol ul {
+            margin-block: 0.5em;
+        }
+
+        .markdown-preview h1, .markdown-preview h2, .markdown-preview h3, 
+        .markdown-preview h4, .markdown-preview h5, .markdown-preview h6 {
+            font-family: var(--font-heading); 
+            color: var(--heading-color);
+            line-height: 1.3;
+            margin-block: 1.5em 0.8em;
+        }
+        .markdown-preview h1 { 
+            font-size: calc(1rem * var(--header-scale) * var(--header-scale) * var(--header-scale) * var(--header-scale));
+            border-bottom: 1px solid var(--header-border-color);
+            padding-bottom: 0.4em; 
+        }
+        .markdown-preview h2 { 
+            font-size: calc(1rem * var(--header-scale) * var(--header-scale) * var(--header-scale)); 
+            border-bottom: 1px solid var(--header-border-color);
+            padding-bottom: 0.4em; 
+        }
+        .markdown-preview h3 { 
+            font-size: calc(1rem * var(--header-scale) * var(--header-scale)); 
+            border-bottom: 1px solid var(--header-border-color);
+            padding-bottom: 0.4em; 
+        }
+        .markdown-preview h4 { font-size: calc(1rem * var(--header-scale)); }
+        .markdown-preview h5 { font-size: 1rem; font-weight: 600; }
+        .markdown-preview h6 { font-size: 0.9rem; font-weight: 600; color: var(--muted-text-color); }
+
+        .markdown-preview :not(pre) > code {
+            background-color: var(--inline-code-bg-color);
+            color: var(--text-color); padding: 0.2em 0.4em; border-radius: 6px;
+            font-size: 0.9em; font-family: 'Roboto Mono', monospace;
+        }
+        .markdown-preview pre {
+            background-color: var(--code-bg-color);
+            border: 1px solid var(--header-border-color); border-radius: 8px;
+            padding: 1em; overflow-x: auto; margin-block: 1.5em;
+        }
+        .markdown-preview pre code.hljs { background-color: transparent; padding: 0; font-size: 0.9em; }
+
+        #editor, #preview-panel {
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+        }
+        #editor::-webkit-scrollbar, #preview-panel::-webkit-scrollbar { width: 8px; }
+        #editor::-webkit-scrollbar-track, #preview-panel::-webkit-scrollbar-track { background: var(--scrollbar-track-color); }
+        #editor::-webkit-scrollbar-thumb, #preview-panel::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb-color);
+            border-radius: 10px; border: 2px solid var(--scrollbar-track-color);
+        }
+        #editor::-webkit-scrollbar-thumb:hover, #preview-panel::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+    </style>
+</head>
+<body class="antialiased overflow-hidden">
+    <main class="flex flex-col h-screen">
+        <header class="flex-shrink-0 bg-[var(--header-bg-color)] border-b border-[var(--header-border-color)] transition-colors duration-300">
+            <div class="flex flex-wrap items-center justify-between gap-y-3 gap-x-4 max-w-screen-2xl mx-auto px-4 sm:px-6 py-3">
+                <!-- Left Side: Logo -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-2xl">📜</span>
+                    <h1 class="text-xl font-bold tracking-tight text-[var(--heading-color)] hidden sm:block">Parchment</h1>
+                </div>
+                <!-- Middle: View Toggles -->
+                <div class="flex-1 flex justify-center order-3 md:order-2 w-full md:w-auto min-w-[180px]">
+                    <div class="flex items-center bg-[var(--control-bg-color)] rounded-lg p-1 text-sm font-medium">
+                        <button id="view-editor" title="Editor Only" class="px-3 py-1.5 rounded-md">Editor</button>
+                        <button id="view-split" title="Split View" class="px-3 py-1.5 rounded-md">Split</button>
+                        <button id="view-preview" title="Preview Only" class="px-3 py-1.5 rounded-md">Preview</button>
+                    </div>
+                </div>
+                <!-- Right Side: Actions -->
+                <div class="flex items-center gap-x-1 sm:gap-x-2 order-2 md:order-3">
+                    <div class="relative" id="format-dropdown-container">
+                        <button id="format-toggle" title="Formatting Options" class="p-2 rounded-lg text-xl transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)]" style="width: 40px; height: 40px;">🎨</button>
+                        <div id="format-menu" class="dropdown-menu absolute right-0 mt-2 w-72 bg-[var(--header-bg-color)] border border-[var(--header-border-color)] rounded-lg shadow-lg z-10 hidden">
+                            <!-- Typography Section -->
+                            <div class="p-3">
+                                <label class="block text-xs font-semibold text-[var(--muted-text-color)] mb-1">Typography</label>
+                                <select id="typography-preset" class="w-full bg-[var(--control-bg-color)] p-2 rounded-md text-sm font-medium border-none focus:ring-2 focus:ring-[var(--active-color)]"></select>
+                            </div>
+                            <div class="px-3 pb-3">
+                                <div id="font-preview-box" class="p-3 rounded-md bg-[var(--control-bg-color)] border border-[var(--header-border-color)]">
+                                    <h3 id="font-preview-heading" class="text-lg font-bold text-[var(--heading-color)] pb-1 mb-1 border-b border-[var(--header-border-color)] transition-colors">Aa: Heading</h3>
+                                    <p id="font-preview-body" class="text-sm text-[var(--text-color)] transition-colors">The quick brown fox jumps over the lazy dog.</p>
+                                </div>
+                            </div>
+                            <hr class="border-[var(--header-border-color)]">
+                            <!-- Sizing Section -->
+                            <div class="p-3">
+                                <label for="text-size-slider" class="block text-xs font-semibold text-[var(--muted-text-color)] mb-1">Body Text Size</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="range" id="text-size-slider" min="12" max="20" step="1">
+                                    <span id="text-size-value" class="text-sm font-mono text-[var(--text-color)] w-10 text-center">16px</span>
+                                </div>
+                            </div>
+                            <div class="p-3 pt-1">
+                                <label for="header-scale-slider" class="block text-xs font-semibold text-[var(--muted-text-color)] mb-1">Header Scale</label>
+                                <div class="flex items-center gap-3">
+                                    <input type="range" id="header-scale-slider" min="1.1" max="1.5" step="0.05">
+                                    <span id="header-scale-value" class="text-sm font-mono text-[var(--text-color)] w-10 text-center">1.25</span>
+                                </div>
+                            </div>
+                            <hr class="border-[var(--header-border-color)]">
+                            <!-- Layout Section -->
+                            <div class="p-3"><label class="block text-xs font-semibold text-[var(--muted-text-color)] mb-1">Content Width</label><select id="layout-width" class="w-full bg-[var(--control-bg-color)] p-2 rounded-md text-sm font-medium border-none focus:ring-2 focus:ring-[var(--active-color)]"><option value="standard">Standard</option><option value="full">Full Width</option></select></div>
+                            <div class="p-3"><label class="block text-xs font-semibold text-[var(--muted-text-color)] mb-1">Preview Columns</label><select id="layout-columns" class="w-full bg-[var(--control-bg-color)] p-2 rounded-md text-sm font-medium border-none focus:ring-2 focus:ring-[var(--active-color)]"><option value="1">One</option><option value="2">Two</option></select></div>
+                        </div>
+                    </div>
+                    <button id="theme-toggle" title="Change Theme" class="p-2 text-xl rounded-lg transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)] flex items-center justify-center" style="width: 40px; height: 40px;">🕯️</button>
+                    <button id="load-md" title="Load File" class="p-2 text-xl rounded-lg transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)]" style="width: 40px; height: 40px;">📂</button>
+                    <button id="save-md" title="Save as Markdown" class="p-2 text-xl rounded-lg transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)]" style="width: 40px; height: 40px;">💾</button>
+                    <button id="print-btn" title="Print" class="p-2 text-xl rounded-lg transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)]" style="width: 40px; height: 40px;">🖨️</button>
+                    <button id="about-btn" title="About Parchment" class="px-3 py-2 rounded-lg transition-all duration-200 border border-transparent hover:border-[var(--header-border-color)] hover:bg-[var(--control-hover-bg-color)] text-sm font-medium text-[var(--text-color)]">About</button>
+                </div>
+            </div>
+        </header>
+        
+        <div id="content-area" class="grid grid-cols-1 md:grid-cols-2 flex-1 min-h-0 gap-4 p-4">
+            <div id="editor-panel" class="h-full rounded-lg shadow-[var(--panel-shadow)] bg-[var(--panel-bg-color)] transition-shadow,background-color duration-300">
+                <textarea id="editor" class="w-full h-full p-6 sm:p-8 bg-transparent text-base leading-relaxed focus:outline-none resize-none" aria-label="Markdown Editor" spellcheck="false"></textarea>
+            </div>
+            <div id="preview-panel" class="h-full rounded-lg shadow-[var(--panel-shadow)] bg-[var(--panel-bg-color)] overflow-y-auto transition-shadow,background-color duration-300">
+                <div id="preview" class="p-6 sm:p-8 markdown-preview" aria-label="Markdown Preview"><div class="markdown-preview-content"></div></div>
+            </div>
+        </div>
+    </main>
+    
+    <input type="file" id="file-input" class="hidden" accept=".md,.txt,text/markdown,text/plain">
+    
+    <div id="about-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 hidden transition-opacity duration-300 ease-in-out">
+        <div id="about-modal-content" class="bg-[var(--panel-bg-color)] rounded-lg shadow-xl max-w-lg w-full p-6 relative transform scale-95 transition-all duration-300 ease-in-out">
+            <button id="close-about-modal" class="absolute top-3 right-3 text-2xl leading-none text-[var(--muted-text-color)] hover:text-[var(--text-color)]">&times;</button>
+            <h2 class="text-2xl font-bold text-[var(--heading-color)] mb-4">About Parchment</h2>
+            <p class="text-[var(--text-color)] mb-4">
+                This interactive tool was created by Phileas Dazeley-Gaist on a whim as a passion project. It's designed to help writers, developers, and scholars quickly draft and preview documents and notes.
+            </p>
+            <p class="text-[var(--text-color)] mb-6">
+                If you find this tool useful or inspiring, please consider supporting its continued development or checking out more of my work below.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <a href="https://phileasdg.github.io/" target="_blank" rel="noopener noreferrer" class="w-full text-center px-4 py-2 rounded-md bg-[var(--control-bg-color)] hover:bg-[var(--control-hover-bg-color)] text-[var(--heading-color)] font-semibold transition-colors">Personal Blog</a>
+                <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" rel="noopener noreferrer" class="w-full text-center px-4 py-2 rounded-md bg-[var(--active-color)] hover:opacity-90 text-[var(--active-text-color)] font-semibold transition-colors">Buy me a coffee</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const previewContent = document.querySelector('.markdown-preview-content');
+            const hljsTheme = document.getElementById('hljs-theme');
+            const printStyleSheet = document.getElementById('print-style-sheet');
+            
+            // --- SETTINGS & CONSTANTS ---
+            const THEMES = { warm: { name: 'Warm', icon: '🕯️' }, light: { name: 'Light', icon: '☀️' }, dark: { name: 'Dark', icon: '🌙' }, };
+            const TYPOGRAPHY_PRESETS = [
+                { name: 'Modern', heading: "'Inter', sans-serif", body: "'Inter', sans-serif" },
+                { name: 'Scholarly', heading: "'Source Serif 4', serif", body: "'Source Serif 4', serif" },
+                { name: 'Classic', heading: "'Lora', serif", body: "'Source Sans 3', sans-serif" },
+                { name: 'Monospace', heading: "'Roboto Mono', monospace", body: "'Roboto Mono', monospace" }
+            ];
+            const HLJS_THEMES = {
+                warm: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/solarized-light.min.css',
+                light: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css',
+                dark: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css',
+            };
+            let settings = { 
+                theme: 'warm', 
+                view: 'split', 
+                typography: 'Modern', 
+                layoutWidth: 'standard', 
+                layoutColumns: '1',
+                textSize: 16,
+                headerScale: 1.25
+            };
+            let isProgrammaticScroll = false;
+
+            // --- LIBRARY CONFIG ---
+            marked.setOptions({ gfm: true, breaks: true, langPrefix: 'hljs language-' });
+            marked.use({ extensions: [
+                { name: 'blockKatex', level: 'block', start: (src) => src.indexOf('\n$$'), tokenizer(src) { const match = src.match(/^\$\$([\s\S]+?)\$\$/); if (match) return { type: 'blockKatex', raw: match[0], text: match[1].trim() }; }, renderer(token) { try { return `<p>${katex.renderToString(token.text, { displayMode: true, throwOnError: true })}</p>`; } catch (e) { return `<p class="text-red-500">${e.message}</p>`; } } },
+                { name: 'inlineKatex', level: 'inline', start: (src) => src.indexOf('$'), tokenizer(src) { const match = src.match(/^\$([^$\n]+?)\$/); if (match) return { type: 'inlineKatex', raw: match[0], text: match[1].trim() }; }, renderer(token) { try { return katex.renderToString(token.text, { displayMode: false, throwOnError: true }); } catch (e) { return `<span class="text-red-500">${token.raw}</span>`; } } }
+            ]});
+
+            // --- CORE FUNCTIONS ---
+            const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
+            const updatePreview = () => {
+                if (window.katex && previewContent) {
+                    previewContent.innerHTML = marked.parse(editor.value);
+                    previewContent.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
+                }
+            };
+            const debouncedUpdatePreview = debounce(updatePreview, 150);
+            const saveSettings = () => localStorage.setItem('parchmentEditorSettings', JSON.stringify(settings));
+
+            // --- UI APPLICATION FUNCTIONS ---
+            const applyTheme = (theme) => {
+                settings.theme = theme;
+                document.documentElement.dataset.theme = theme;
+                document.getElementById('theme-toggle').textContent = THEMES[theme].icon;
+                hljsTheme.href = HLJS_THEMES[theme];
+                saveSettings();
+            };
+            const applyLayout = () => {
+                previewContent.classList.remove('width-standard', 'width-full', 'columns-1', 'columns-2');
+                previewContent.classList.add(`width-${settings.layoutWidth}`, `columns-${settings.layoutColumns}`);
+                if (settings.view === 'preview') {
+                    const previewPanel = document.getElementById('preview-panel');
+                    if (settings.layoutWidth === 'full') { previewPanel.classList.remove('max-w-screen-lg'); } 
+                    else { previewPanel.classList.add('max-w-screen-lg'); }
+                }
+                saveSettings();
+            };
+            const applyView = (view) => {
+                settings.view = view;
+                const contentArea = document.getElementById('content-area');
+                const editorPanel = document.getElementById('editor-panel');
+                const previewPanel = document.getElementById('preview-panel');
+                document.querySelectorAll('#view-editor, #view-split, #view-preview').forEach(btn => { btn.style.backgroundColor = ''; btn.style.color = ''; });
+                const activeBtn = document.getElementById(`view-${view}`);
+                if (activeBtn) { activeBtn.style.backgroundColor = 'var(--active-color)'; activeBtn.style.color = 'var(--active-text-color)'; }
+                if (view === 'split') {
+                    contentArea.classList.remove('flex', 'justify-center');
+                    contentArea.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2');
+                    editorPanel.style.display = 'block';
+                    previewPanel.style.display = 'block';
+                    editorPanel.classList.remove('w-full', 'max-w-screen-lg');
+                    previewPanel.classList.remove('w-full', 'max-w-screen-lg');
+                } else {
+                    contentArea.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2');
+                    contentArea.classList.add('flex', 'justify-center');
+                    if (view === 'editor') {
+                        editorPanel.style.display = 'block'; previewPanel.style.display = 'none';
+                        editorPanel.classList.add('w-full', 'max-w-screen-lg');
+                    } else {
+                        editorPanel.style.display = 'none'; previewPanel.style.display = 'block';
+                        previewPanel.classList.add('w-full');
+                    }
+                }
+                applyLayout(); 
+                saveSettings();
+            };
+            const applyTypography = (presetName) => {
+                const preset = TYPOGRAPHY_PRESETS.find(p => p.name === presetName);
+                if (!preset) return;
+                settings.typography = presetName;
+                preview.style.setProperty('--font-heading', preset.heading);
+                preview.style.setProperty('--font-body', preset.body);
+                saveSettings();
+            };
+            const applyTextAndScale = () => {
+                document.documentElement.style.setProperty('--base-text-size', `${settings.textSize}px`);
+                document.documentElement.style.setProperty('--header-scale', settings.headerScale);
+                document.getElementById('text-size-value').textContent = `${settings.textSize}px`;
+                document.getElementById('header-scale-value').textContent = settings.headerScale.toFixed(2);
+                document.getElementById('text-size-slider').value = settings.textSize;
+                document.getElementById('header-scale-slider').value = settings.headerScale;
+                saveSettings();
+            };
+            const updateFontPreview = (presetName) => {
+                const fontPreviewHeading = document.getElementById('font-preview-heading');
+                const fontPreviewBody = document.getElementById('font-preview-body');
+                const preset = TYPOGRAPHY_PRESETS.find(p => p.name === presetName);
+                if (!preset) return;
+                if (fontPreviewHeading) fontPreviewHeading.style.fontFamily = preset.heading;
+                if (fontPreviewBody) fontPreviewBody.style.fontFamily = preset.body;
+            };
+
+            // --- EVENT HANDLERS ---
+            const handlePrint = () => {
+                const printStyles = ` @media print { @page { size: auto; margin: 2cm; } body { background-color: #fff !important; } header, #editor-panel { display: none !important; } #content-area { display: block !important; padding: 0 !important; } #preview-panel { width: 100% !important; height: auto !important; overflow: visible !important; box-shadow: none !important; border: none !important; } .markdown-preview { color: #000 !important; } .markdown-preview-content { max-width: ${settings.layoutWidth === 'full' ? '100%' : '80ch'}; column-count: ${settings.layoutColumns}; color: #000 !important; margin-inline: auto; } .markdown-preview h1, .markdown-preview h2, .markdown-preview h3, .katex, .markdown-preview-content, .markdown-preview-content * { color: #000 !important; } }`;
+                printStyleSheet.innerHTML = printStyles;
+                window.print();
+                printStyleSheet.innerHTML = '';
+            };
+            const handleSave = () => {
+                const text = editor.value;
+                const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'parchment-document.md';
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
+            };
+            const handleLoad = () => {
+                document.getElementById('file-input').click();
+            };
+            const syncScroll = (source, target) => {
+                if (isProgrammaticScroll || settings.view !== 'split') return;
+                isProgrammaticScroll = true;
+                const sourceScrollRatio = source.scrollTop / (source.scrollHeight - source.clientHeight);
+                target.scrollTop = sourceScrollRatio * (target.scrollHeight - target.clientHeight);
+                setTimeout(() => isProgrammaticScroll = false, 50);
+            };
+
+            // --- INITIALIZATION ---
+            const init = () => {
+                const typographySelect = document.getElementById('typography-preset');
+                TYPOGRAPHY_PRESETS.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.name; option.textContent = p.name;
+                    option.style.fontFamily = p.body;
+                    typographySelect.appendChild(option);
+                });
+                const saved = localStorage.getItem('parchmentEditorSettings');
+                if (saved) Object.assign(settings, JSON.parse(saved));
+                
+                // Fallbacks for new settings
+                settings.textSize = settings.textSize || 16;
+                settings.headerScale = settings.headerScale || 1.25;
+
+                settings.view = 'split'; 
+                applyTheme(settings.theme);
+                applyTypography(settings.typography);
+                updateFontPreview(settings.typography);
+                applyTextAndScale();
+                
+                typographySelect.value = settings.typography;
+                document.getElementById('layout-width').value = settings.layoutWidth;
+                document.getElementById('layout-columns').value = settings.layoutColumns;
+                applyView(settings.view); 
+                if (!editor.value) {
+                    editor.value = `# Welcome to Parchment 📜
+
+Parchment is a lightweight, real-time Markdown editor designed for clarity and focus. Here's a quick guide to its features.
+
+## Text Formatting
+You can use standard Markdown for text styling:
+
+- **Bold Text**
+- *Italic Text*
+- \`inline code\`
+
+### Lists
+Create ordered or unordered lists.
+
+1. First item
+2. Second item
+   - Nested item
+
+#### Code Blocks
+Parchment uses highlight.js for syntax highlighting. Just specify the language:
+
+\`\`\`javascript
+function greet(name) {
+  // A simple greeting function
+  console.log(\`Hello, \${name}!\`);
+}
+greet('Parchment User');
+\`\`\`
+
+##### Academic Features (LaTeX)
+Embed mathematical formulas using KaTeX.
+
+- Inline: $E = mc^2$
+- Block:
+$$\\frac{1}{\\Gamma(z)} = z e^{\\gamma z} \\prod_{n=1}^\\infty \\left(1 + \\frac{z}{n}\\right) e^{-z/n}$$
+
+###### Customization
+Use the icons in the top-right to customize your experience:
+
+- **🎨 Formatting:** Change typography, content width, and column layout.
+- **🕯️ Theme:** Cycle through different color themes.
+- **💾 Save:** Download your work as a \`.md\` file.
+- **🖨️ Print:** Get a clean, formatted printout of your document.`;
+                }
+                const readyInterval = setInterval(() => { if(window.katex) { updatePreview(); clearInterval(readyInterval); } }, 50);
+
+                // --- EVENT LISTENERS ---
+                editor.addEventListener('input', debouncedUpdatePreview);
+                document.getElementById('print-btn').addEventListener('click', handlePrint);
+                document.getElementById('save-md').addEventListener('click', handleSave);
+                document.getElementById('load-md').addEventListener('click', handleLoad);
+                ['view-editor', 'view-split', 'view-preview'].forEach(id => document.getElementById(id).addEventListener('click', () => applyView(id.replace('view-', ''))));
+                typographySelect.addEventListener('change', (e) => {
+                    applyTypography(e.target.value);
+                    updateFontPreview(e.target.value);
+                });
+                document.getElementById('layout-width').addEventListener('change', (e) => { settings.layoutWidth = e.target.value; applyLayout(); });
+                document.getElementById('layout-columns').addEventListener('change', (e) => { settings.layoutColumns = e.target.value; applyLayout(); });
+                
+                document.getElementById('text-size-slider').addEventListener('input', (e) => {
+                    settings.textSize = parseInt(e.target.value, 10);
+                    applyTextAndScale();
+                });
+                document.getElementById('header-scale-slider').addEventListener('input', (e) => {
+                    settings.headerScale = parseFloat(e.target.value);
+                    applyTextAndScale();
+                });
+
+                const themeToggle = document.getElementById('theme-toggle');
+                const themeKeys = Object.keys(THEMES);
+                const cycleTheme = () => {
+                    const currentThemeIndex = themeKeys.indexOf(settings.theme);
+                    const nextThemeIndex = (currentThemeIndex + 1) % themeKeys.length;
+                    applyTheme(themeKeys[nextThemeIndex]);
+                };
+                themeToggle.addEventListener('click', cycleTheme);
+                const setupDropdown = (containerId) => {
+                    const container = document.getElementById(containerId);
+                    const toggle = container.querySelector('button');
+                    const menu = container.querySelector('.dropdown-menu');
+                    toggle.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); });
+                    menu.addEventListener('click', (e) => e.stopPropagation());
+                };
+                setupDropdown('format-dropdown-container');
+                document.addEventListener('click', () => { document.getElementById('format-menu').classList.add('hidden'); });
+                
+                const aboutModal = document.getElementById('about-modal');
+                const aboutModalContent = document.getElementById('about-modal-content');
+                const aboutBtn = document.getElementById('about-btn');
+                const closeAboutModal = document.getElementById('close-about-modal');
+                const openModal = () => {
+                    aboutModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        aboutModal.classList.remove('opacity-0');
+                        aboutModalContent.classList.remove('scale-95');
+                    }, 10);
+                };
+                const closeModal = () => {
+                    aboutModal.classList.add('opacity-0');
+                    aboutModalContent.classList.add('scale-95');
+                    setTimeout(() => { aboutModal.classList.add('hidden'); }, 300);
+                };
+                aboutBtn.addEventListener('click', openModal);
+                closeAboutModal.addEventListener('click', closeModal);
+                aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) closeModal(); });
+
+                const fileInput = document.getElementById('file-input');
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor.value = e.target.result;
+                        updatePreview();
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                });
+
+                window.addEventListener('resize', () => applyView(settings.view));
+                editor.addEventListener('scroll', () => syncScroll(editor, preview));
+                preview.addEventListener('scroll', () => syncScroll(preview, editor));
+            };
+            init();
+        });
+    </script>
+</body>
+</html>
